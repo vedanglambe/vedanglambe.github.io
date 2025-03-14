@@ -920,7 +920,9 @@
                 }, 200);
             }
         });
-        
+        //Tear in library thing
+
+
         // Hidden interaction: clicking rapidly in one spot
         let clickCount = 0;
         let lastClickTime = 0;
@@ -940,7 +942,7 @@
                 clickCount++;
                 
                 if (clickCount >= 7) {
-                    // Create a "tear" 
+                    // Create the tear
                     const tear = document.createElement('div');
                     tear.style.position = 'fixed';
                     tear.style.top = `${position.y}px`;
@@ -1015,7 +1017,7 @@
             // Generate a new room after a minute and update counter
             generateNewRoom();
             document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-        }, 60000);
+        }, 30000);
         
         // Add whispers that play randomly
         function playWhisper() {
@@ -1031,6 +1033,8 @@
                 "hidden passages"
             ];
             
+            //Chatgpt dor designing the audio
+
             // Create audio context
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const audioContext = new AudioContext();
