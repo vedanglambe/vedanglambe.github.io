@@ -1,1 +1,0 @@
-# vedanglambe.github.io
