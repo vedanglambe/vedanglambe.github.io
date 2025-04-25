@@ -34,34 +34,6 @@
     .word a {
       text-decoration: none;
       color: white;
-      mix-blend-mode: difference;
-    }
-    iframe {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      opacity: 0.3;
-      pointer-events: none;
-      filter: blur(6px) saturate(0.6);
-    }
-    #commentary {
-      position: absolute;
-      bottom: 2rem;
-      left: 2rem;
-      color: white;
-      font-family: 'Courier New', monospace;
-      font-size: 1rem;
-      overflow: hidden;
-      white-space: nowrap;
-      border-right: 2px solid white;
-      width: 0;
-      animation: typeWriter 4s steps(40, end) forwards;
-      z-index: 2000;
-      pointer-events: none;
-      mix-blend-mode: difference;
     }
     #clickCounter {
       position: absolute;
@@ -131,21 +103,19 @@
     <div>
       <h2>Welcome to the 7-Click Wikipedia Challenge!</h2>
       <p style="max-width: 600px; margin: 1rem auto;">
-        Enter a Wikipedia article URL to start. You have 7 clicks to navigate through hyperlinks and find the target word/article.
+        Enter a Wikipedia article URL to start. You might have to try a couple because they're currently a hit-or-miss :( A target word will be randomly chosen from that page. Click on floating words (which are hyperlinks) to navigate toward the word’s page. Reach it in exactly 7 clicks!
       </p>
-      <p>Click on the hyperlinks of visible floating words to navigate.</p>
       <button onclick="closeInstructions()">Start Playing</button>
     </div>
   </div>
-
-  <iframe id="wikiIframe" src="" frameborder="0"></iframe>
 
   <script>
     let clickCount = 0;
     let targetWord = '';
     let currentUrl = '';
     let visitedPages = new Set();
-    let pathToTarget = [];
+    let targetPath = []; // Holds correct path (URLs)
+    const output = document.getElementById('output');
 
     function closeInstructions() {
       document.getElementById('instructionModal').style.display = 'none';
@@ -157,108 +127,136 @@
         alert('Please enter a valid Wikipedia URL.');
         return;
       }
-      currentUrl = url;
+
       visitedPages.clear();
-      pathToTarget = [];
+      targetPath = [];
+      output.innerHTML = '';
       clickCount = 0;
       document.getElementById('completionMessage').textContent = '';
       document.getElementById('clickCounter').textContent = 'Clicks: 0';
       document.getElementById('targetWord').textContent = '';
-      fetchPage(url);
-      document.getElementById('wikiIframe').src = url;
+      currentUrl = url;
+
+      const pageTitle = url.split('/wiki/')[1];
+      generateTargetPath(pageTitle, 7); // preload path
     }
 
-    function fetchPage(url) {
-      if (visitedPages.has(url)) return;
-      visitedPages.add(url);
-      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
-        .then(res => res.json())
-        .then(data => processLinks(data.contents, url))
-        .catch(err => alert('Could not fetch site. Try a different one.'));
+    async function generateTargetPath(startTitle, depth) {
+      let currentTitle = startTitle;
+      targetPath = [currentTitle];
+
+      for (let i = 0; i < depth; i++) {
+        const html = await fetchPageHTML(currentTitle);
+        const links = extractWikiLinks(html);
+
+        if (links.length === 0) break;
+
+        const randomLink = links[Math.floor(Math.random() * links.length)];
+        currentTitle = randomLink.replace('/wiki/', '');
+        targetPath.push(currentTitle);
+      }
+
+      const finalWord = decodeURIComponent(targetPath[targetPath.length - 1]).replace(/_/g, ' ');
+      targetWord = finalWord;
+      document.getElementById('targetWord').textContent = 'Target Word: ' + targetWord;
+
+      loadPage(targetPath[0]);
     }
 
-    function processLinks(html, originUrl) {
+    function fetchPageHTML(title) {
+      const apiURL = `https://en.wikipedia.org/api/rest_v1/page/html/${title}`;
+      return fetch(apiURL)
+        .then(res => {
+          if (!res.ok) throw new Error("Fetch failed");
+          return res.text();
+        })
+        .catch(err => {
+          alert('Could not fetch Wikipedia page.');
+          throw err;
+        });
+    }
+
+    function extractWikiLinks(html) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
-      const baseUrl = new URL(originUrl);
       const links = Array.from(doc.querySelectorAll('a'));
-      let candidates = [];
-      links.forEach(link => {
+      return links
+        .map(a => a.getAttribute('href'))
+        .filter(href => href && href.startsWith('/wiki/') && !href.includes(':'));
+    }
+
+    async function loadPage(title) {
+      const url = `https://en.wikipedia.org/wiki/${title}`;
+      if (visitedPages.has(url)) return;
+      visitedPages.add(url);
+
+      const html = await fetchPageHTML(title);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const links = Array.from(doc.querySelectorAll('a'));
+
+      let delayCounter = 0;
+      for (let link of links) {
+        const href = link.getAttribute('href');
         const text = link.textContent.trim();
-        let href = link.getAttribute('href');
-        if (!text || !href || isUtilityLink(href, text)) return;
-        try {
-          href = new URL(href, baseUrl).href;
-          if (href.startsWith('https://en.wikipedia.org/wiki/')) {
-            candidates.push({ text, href });
-          }
-        } catch (e) {}
-      });
+        if (!href || !href.startsWith('/wiki/') || href.includes(':') || text.length < 2) continue;
 
-      if (pathToTarget.length === 0 && candidates.length) {
-        const target = candidates[Math.floor(Math.random() * candidates.length)];
-        targetWord = target.text;
-        document.getElementById('targetWord').textContent = `Target Word: ${targetWord}`;
-        pathToTarget.push(target.href); // previsualize path start
+        const fullUrl = `https://en.wikipedia.org${href}`;
+        const targetTitle = href.replace('/wiki/', '');
+
+        showWord(text, targetTitle, delayCounter);
+        delayCounter += 100;
       }
-
-      let delay = 0;
-      candidates.forEach(({ text, href }) => {
-        setTimeout(() => showWord(text, href), delay);
-        delay += 150;
-      });
     }
 
-    function showWord(text, link) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'word';
-      wrapper.style.left = Math.random() * (window.innerWidth - 200) + 'px';
-      wrapper.style.top = Math.random() * (window.innerHeight - 100) + 'px';
-      wrapper.style.fontSize = (Math.random() * 2 + 1.2) + 'rem';
-      const a = document.createElement('a');
-      a.href = link;
-      a.target = '_blank';
-      a.textContent = text;
-      a.onclick = (e) => {
-        e.preventDefault();
-        navigateTo(link, text);
-      };
-      wrapper.appendChild(a);
-      document.getElementById('output').appendChild(wrapper);
+    function showWord(word, nextTitle, delay) {
       setTimeout(() => {
-        wrapper.style.opacity = 0;
-        setTimeout(() => wrapper.remove(), 500);
-      }, 3000);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'word';
+        wrapper.style.left = Math.random() * (window.innerWidth - 200) + 'px';
+        wrapper.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+        wrapper.style.fontSize = (Math.random() * 2 + 1.2) + 'rem';
+
+        const a = document.createElement('a');
+        a.href = `https://en.wikipedia.org/wiki/${nextTitle}`;
+        a.target = '_blank';
+        a.textContent = word;
+        a.onclick = (e) => {
+          e.preventDefault();
+          handleClick(nextTitle, word);
+        };
+
+        wrapper.appendChild(a);
+        output.appendChild(wrapper);
+
+        setTimeout(() => {
+          wrapper.style.opacity = 0;
+          setTimeout(() => wrapper.remove(), 500);
+        }, 4000);
+      }, delay);
     }
 
-    function navigateTo(url, word) {
+    function handleClick(nextTitle, clickedWord) {
       clickCount++;
-      document.getElementById('clickCounter').textContent = `Clicks: ${clickCount}`;
-      document.getElementById('wikiIframe').src = url;
-      pathToTarget.push(url);
-      if (clickCount === 7 || word.toLowerCase() === targetWord.toLowerCase()) {
-        const msg = word.toLowerCase() === targetWord.toLowerCase()
-          ? `You found the word: "${word}". Challenge Complete!`
-          : `You lost! The word was: ${targetWord}. Restarting...`;
-        document.getElementById('completionMessage').textContent = msg;
-        if (word.toLowerCase() !== targetWord.toLowerCase()) {
-          setTimeout(() => startChallenge(), 3000);
-        }
-      } else {
-        fetchPage(url);
+      document.getElementById('clickCounter').textContent = 'Clicks: ' + clickCount;
+
+      const cleanedClicked = clickedWord.toLowerCase().replace(/_/g, ' ');
+      const cleanedTarget = targetWord.toLowerCase();
+
+      if (cleanedClicked === cleanedTarget) {
+        document.getElementById('completionMessage').textContent = `You found the word: "${clickedWord}". Challenge Complete!`;
+        return;
       }
-    }
 
-    function isUtilityLink(href, text) {
-      return href.includes('Help:') ||
-             href.includes('Wikimedia') ||
-             href.includes('Special:') ||
-             text.length < 2;
+      if (clickCount >= 7) {
+        document.getElementById('completionMessage').textContent = `You lost! The word was: ${targetWord}. Restarting...`;
+        setTimeout(startChallenge, 4000);
+        return;
+      }
+
+      output.innerHTML = '';
+      loadPage(nextTitle);
     }
   </script>
 </body>
 </html>
-  </script>
-</body>
-</html>
-
