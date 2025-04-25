@@ -89,6 +89,34 @@
       color: green;
       z-index: 1000;
     }
+
+    #instructionModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      color: white;
+      font-family: monospace;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    #instructionModal h2 {
+      margin-top: 0;
+    }
+
+    #instructionModal button {
+      margin-top: 2rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -101,12 +129,29 @@
   <div id="targetWord"></div>
   <div id="completionMessage"></div>
 
+  <!-- Instruction Modal -->
+  <div id="instructionModal">
+    <div>
+      <h2>Welcome to the 7-Click Wikipedia Challenge!</h2>
+      <p style="max-width: 600px; margin: 1rem auto;">
+        Enter a Wikipedia article URL to start. Currently a bit hit or miss, you might have to try a few. A target word will be chosen from the page. 
+        You have 7 clicks to navigate through Wikipedia pages and try to get to that word/wikipedia page.
+      </p>
+      <p>Click on floating words to load new pages. Click away!<3 </p>
+      <button onclick="closeInstructions()">Start Playing</button>
+    </div>
+  </div>
+
   <script>
     let clickCount = 0;
     let targetWord = '';
     let currentUrl = '';
     let visitedPages = new Set();  //  track pages
     let pathToTarget = [];  // To track the path from the starting page to the target word
+
+    function closeInstructions() {
+      document.getElementById('instructionModal').style.display = 'none';
+    }
 
     // Start the challenge with a user-provided URL
     function startChallenge() {
@@ -126,11 +171,8 @@
       fetchPage(url);
     }
 
-    // Het Wikipedia page and process its links
     function fetchPage(url) {
-      if (visitedPages.has(url)) {
-        return;
-      }
+      if (visitedPages.has(url)) return;
       visitedPages.add(url);
 
       fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
@@ -144,7 +186,6 @@
         });
     }
 
-    // Process the HTML content to extract clickable words
     function processLinks(html, originUrl) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
@@ -163,17 +204,14 @@
           return;
         }
 
-        // Collect words for the target selection
         words = words.concat(text.split(/\s+/));
       });
 
-      // If it's the first page, select a random target word for the challenge
       if (pathToTarget.length === 0) {
         targetWord = words[Math.floor(Math.random() * words.length)];
         document.getElementById('targetWord').textContent = `Target Word: ${targetWord}`;
       }
 
-      // Display clickable words on the screen
       let delayCounter = 0;
       words.forEach(word => {
         showWord(word, originUrl, delayCounter);
@@ -181,7 +219,6 @@
       });
     }
 
-    // Show words as clickable elements
     function showWord(word, url, delay) {
       setTimeout(() => {
         const wrapper = document.createElement('div');
@@ -208,7 +245,6 @@
       }, delay);
     }
 
-    // Check if the link is a utility link (e.g., to help or disambiguation pages)
     function isUtilityLink(href, text) {
       return href.includes('Help:') || 
              href.includes('Wikimedia') || 
@@ -216,33 +252,28 @@
              text.length < 2;
     }
 
-    // Load a new Wikipedia page and track the click
     function loadWikipediaInIframe(url, word) {
       clickCount++;
-
-      // Update the click counter
       document.getElementById('clickCounter').textContent = `Clicks: ${clickCount}`;
 
-      // End the challenge after 7 clicks
       if (clickCount === 7) {
         if (word.toLowerCase() === targetWord.toLowerCase()) {
           document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
         } else {
           document.getElementById('completionMessage').textContent = 'You lost! The word was: ' + targetWord + '. The game will restart.';
-          setTimeout(() => startChallenge(), 3000);  // Restart after 3 seconds
+          setTimeout(() => startChallenge(), 3000);
         }
       }
 
-      // If the target word is found early
       if (word.toLowerCase() === targetWord.toLowerCase()) {
         document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
         return;
       }
 
-      // Add to the path and fetch the next page
       pathToTarget.push(url);
       fetchPage(url);
     }
   </script>
 </body>
 </html>
+
