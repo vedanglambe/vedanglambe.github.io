@@ -89,7 +89,6 @@
       color: green;
       z-index: 1000;
     }
-
     #instructionModal {
       position: fixed;
       top: 0;
@@ -106,11 +105,9 @@
       padding: 2rem;
       text-align: center;
     }
-
     #instructionModal h2 {
       margin-top: 0;
     }
-
     #instructionModal button {
       margin-top: 2rem;
       padding: 0.5rem 1rem;
@@ -137,7 +134,7 @@
         Enter a Wikipedia article URL to start. Currently a bit hit or miss, you might have to try a few. A target word will be chosen from the page. 
         You have 7 clicks to navigate through Wikipedia pages and try to get to that word/wikipedia page.
       </p>
-      <p>Click on floating words to load new pages. Click away!<3 </p>
+      <p>Click on floating words to load new pages. Click away! &lt;3</p>
       <button onclick="closeInstructions()">Start Playing</button>
     </div>
   </div>
@@ -146,14 +143,13 @@
     let clickCount = 0;
     let targetWord = '';
     let currentUrl = '';
-    let visitedPages = new Set();  //  track pages
-    let pathToTarget = [];  // To track the path from the starting page to the target word
+    let visitedPages = new Set();
+    let pathToTarget = [];
 
     function closeInstructions() {
       document.getElementById('instructionModal').style.display = 'none';
     }
 
-    // Start the challenge with a user-provided URL
     function startChallenge() {
       const url = document.getElementById('urlInput').value;
       if (!url.startsWith('https://en.wikipedia.org/wiki/')) {
@@ -166,8 +162,8 @@
       pathToTarget = [];
       clickCount = 0;
       document.getElementById('completionMessage').textContent = '';
-      document.getElementById('clickCounter').textContent = Clicks: 0;
-      document.getElementById('targetWord').textContent = '';  // Clear target word
+      document.getElementById('clickCounter').textContent = `Clicks: 0`;
+      document.getElementById('targetWord').textContent = '';
       fetchPage(url);
     }
 
@@ -175,7 +171,7 @@
       if (visitedPages.has(url)) return;
       visitedPages.add(url);
 
-      fetch(https://api.allorigins.win/get?url=${encodeURIComponent(url)})
+      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
         .then(res => res.json())
         .then(data => {
           processLinks(data.contents, url);
@@ -207,9 +203,9 @@
         words = words.concat(text.split(/\s+/));
       });
 
-      if (pathToTarget.length === 0) {
+      if (pathToTarget.length === 0 && words.length > 0) {
         targetWord = words[Math.floor(Math.random() * words.length)];
-        document.getElementById('targetWord').textContent = Target Word: ${targetWord};
+        document.getElementById('targetWord').textContent = `Target Word: ${targetWord}`;
       }
 
       let delayCounter = 0;
@@ -254,19 +250,19 @@
 
     function loadWikipediaInIframe(url, word) {
       clickCount++;
-      document.getElementById('clickCounter').textContent = Clicks: ${clickCount};
+      document.getElementById('clickCounter').textContent = `Clicks: ${clickCount}`;
 
       if (clickCount === 7) {
         if (word.toLowerCase() === targetWord.toLowerCase()) {
-          document.getElementById('completionMessage').textContent = You found the word: "${word}". Challenge Complete!;
+          document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
         } else {
-          document.getElementById('completionMessage').textContent = 'You lost! The word was: ' + targetWord + '. The game will restart.';
+          document.getElementById('completionMessage').textContent = `You lost! The word was: ${targetWord}. The game will restart.`;
           setTimeout(() => startChallenge(), 3000);
         }
       }
 
       if (word.toLowerCase() === targetWord.toLowerCase()) {
-        document.getElementById('completionMessage').textContent = You found the word: "${word}". Challenge Complete!;
+        document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
         return;
       }
 
