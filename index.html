@@ -1,1130 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The House That Never Ends</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Bitter:wght@300;400;700&family=Space+Mono&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Bitter', serif;
-            background-color: #f4e9da;
-            color: #2a2826;
-            overflow-x: hidden;
-            cursor: crosshair;
-            transition: background-color 0.8s ease;
-        }
-        
-        .container {
-            position: relative;
-            width: 100vw;
-            min-height: 100vh;
-        }
-        
-        /* Navigation system */
-        .navigation {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 12px;
-            z-index: 100;
-            mix-blend-mode: difference;
-        }
-        
-        .nav-btn {
-            font-family: 'Space Mono', monospace;
-            background: none;
-            border: 1px solid #333;
-            padding: 8px 15px;
-            color: #f4e9da;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .nav-btn:hover {
-            transform: translateY(-3px) rotate(1deg);
-        }
-        
-        .nav-btn::after {
-            content: "";
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.1);
-            top: 0;
-            left: -100%;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-btn:hover::after {
-            left: 0;
-        }
-        
-        /* Room structure */
-        .room {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 1s ease, transform 1s ease;
-            padding: 40px;
-            overflow: hidden;
-        }
-        
-        .room.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-        
-        .room-content {
-            max-width: 80%;
-            position: relative;
-            z-index: 10;
-        }
-        
-        .room-title {
-            font-family: 'Space Mono', monospace;
-            font-size: clamp(1.5rem, 5vw, 3rem);
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            line-height: 1.1;
-            text-align: center;
-            transition: transform 0.5s ease;
-        }
-        
-        .room-description {
-            font-size: clamp(1rem, 2vw, 1.3rem);
-            line-height: 1.6;
-            margin-bottom: 30px;
-            text-align: center;
-            max-width: 700px;
-            transition: opacity 0.5s ease;
-        }
-        
-        /* Architectural elements */
-        .wall {
-            position: absolute;
-            background-color: rgba(114, 94, 72, 0.2);
-            border: 1px solid rgba(114, 94, 72, 0.4);
-            transition: all 2s cubic-bezier(0.23, 1, 0.32, 1);
-            pointer-events: none;
-            z-index: 1;
-        }
-        
-        .window {
-            position: absolute;
-            border: 2px solid #725e48;
-            background-color: rgba(167, 199, 231, 0.3);
-            transition: all 0.8s ease;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 2;
-        }
-        
-        .window::before {
-            content: "";
-            position: absolute;
-            width: 100%;
-            height: 1px;
-            background-color: rgba(255, 255, 255, 0.7);
-            top: 50%;
-            left: 0;
-        }
-        
-        .window::after {
-            content: "";
-            position: absolute;
-            height: 100%;
-            width: 1px;
-            background-color: rgba(255, 255, 255, 0.7);
-            left: 50%;
-            top: 0;
-        }
-        
-        .staircase {
-            position: absolute;
-            border-top: 2px solid #725e48;
-            transform-origin: left bottom;
-            transition: all 1.5s ease;
-            pointer-events: none;
-            z-index: 3;
-        }
-        
-        /* Disorienting elements */
-        .ghost {
-            position: absolute;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            filter: blur(10px);
-            pointer-events: none;
-            transition: all 2s ease;
-            z-index: 1;
-        }
-        
-        .door-nowhere {
-            position: absolute;
-            width: 30px;
-            height: 60px;
-            background-color: #5d4b3a;
-            transition: all 0.5s ease;
-            z-index: 5;
-            cursor: pointer;
-        }
-        
-        .door-nowhere:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-        }
-        
-        .secret-message {
-            position: absolute;
-            font-family: 'Space Mono', monospace;
-            color: rgba(42, 40, 38, 0.1);
-            font-size: 0.7rem;
-            transform: rotate(var(--rotate));
-            pointer-events: none;
-            user-select: none;
-            z-index: 4;
-            transition: opacity 0.5s ease;
-        }
-        
-        .secret-message:hover {
-            color: rgba(42, 40, 38, 0.5);
-        }
-        
-        /* Overlay elements */
-        .static-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iLjc1IiBzdGl0Y2hUaWxlcz0ic3RpdGNoIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAuMSAwIi8+PC9maWx0ZXI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbHRlcj0idXJsKCNhKSIvPjwvc3ZnPg==');
-            opacity: 0.05;
-            pointer-events: none;
-            z-index: 200;
-        }
-        
-        .vignette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.2) 100%);
-            pointer-events: none;
-            z-index: 201;
-        }
-        
-        /* Counter and inventory */
-        .counter {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.8rem;
-            opacity: 0.6;
-            z-index: 100;
-        }
-        
-        .inventory {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.8rem;
-            opacity: 0.6;
-            z-index: 100;
-        }
-        
-        /* Time counter */
-        .time {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            font-family: 'Space Mono', monospace;
-            font-size: 0.8rem;
-            opacity: 0.6;
-            z-index: 100;
-        }
-        
-        /* Glitch effect */
-        .glitch {
-            animation: glitch 5s infinite;
-        }
-        
-        @keyframes glitch {
-            0% { transform: translate(0); }
-            1% { transform: translate(-3px, 1px); }
-            2% { transform: translate(0); }
-            95% { transform: translate(0); }
-            96% { transform: translate(2px, -1px); }
-            97% { transform: translate(0); }
-            98% { transform: translate(-2px, 1px); }
-            99% { transform: translate(0); }
-            100% { transform: translate(0); }
-        }
-        
-        /* Media queries */
-        @media (max-width: 768px) {
-            .room-content {
-                max-width: 95%;
-            }
-            
-            .navigation {
-                flex-wrap: wrap;
-                justify-content: center;
-                width: 90%;
-            }
-        }
-        
-        /* Extra visual elements */
-        .floor-pattern {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 30%;
-            background-image: repeating-linear-gradient(
-                45deg,
-                rgba(114, 94, 72, 0.1),
-                rgba(114, 94, 72, 0.1) 10px,
-                rgba(114, 94, 72, 0.2) 10px,
-                rgba(114, 94, 72, 0.2) 20px
-            );
-            opacity: 0.3;
-            pointer-events: none;
-            z-index: 1;
-            transform: perspective(500px) rotateX(60deg);
-            transform-origin: bottom;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>7-Click Wikipedia Challenge</title>
+  <style>
+    body {
+      background: #000;
+      margin: 0;
+      overflow: hidden;
+      font-family: monospace;
+    }
+    #inputBox {
+      position: absolute;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      gap: 1rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .word {
+      position: absolute;
+      pointer-events: auto;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+      mix-blend-mode: difference;
+    }
+    .word a {
+      text-decoration: none;
+      color: white;
+      mix-blend-mode: difference;
+    }
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      opacity: 0.3;
+      pointer-events: none;
+      filter: blur(6px) saturate(0.6);
+    }
+    #commentary {
+      position: absolute;
+      bottom: 2rem;
+      left: 2rem;
+      color: white;
+      font-family: 'Courier New', monospace;
+      font-size: 1rem;
+      overflow: hidden;
+      white-space: nowrap;
+      border-right: 2px solid white;
+      width: 0;
+      animation: typeWriter 4s steps(40, end) forwards;
+      z-index: 2000;
+      pointer-events: none;
+      mix-blend-mode: difference;
+    }
+    #clickCounter {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-size: 1.2rem;
+      color: white;
+    }
+    #targetWord {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.5rem;
+      color: white;
+      z-index: 1000;
+      font-weight: bold;
+    }
+    #completionMessage {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 2rem;
+      font-size: 1.5rem;
+      color: green;
+      z-index: 1000;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Rooms -->
-        <div class="room active" id="entrance">
-            <div class="room-content">
-                <h1 class="room-title glitch">You are Here</h1>
-                <p class="room-description">You stand at the threshold of a structure built to confuse spirits. Every doorway a possibility, every window an illusion. The architecture defies logic—staircases lead to ceilings, doors open to solid walls.</p>
-            </div>
-        </div>
-        
-        <div class="room" id="stair-room">
-            <div class="room-content">
-                <h1 class="room-title">Stairs to Nowhere</h1>
-                <p class="room-description">A grand staircase spirals upward, then makes an impossible turn. Each step is a different height—an architectural whisper designed to trip the unwary spirit. The banister feels warm beneath your fingers, as if recently grasped.</p>
-            </div>
-        </div>
-        
-        <div class="room" id="door-room">
-            <div class="room-content">
-                <h1 class="room-title">Room of Thirteen Doors</h1>
-                <p class="room-description">Thirteen doors line the walls of a single room. One leads to a 12-foot drop. Another opens to reveal a brick wall. Which will you choose? Movement catches your peripheral vision—but nothing's there when you turn to look.</p>
-            </div>
-        </div>
-        
-        <div class="room" id="window-room">
-            <div class="room-content">
-                <h1 class="room-title">Séance Room</h1>
-                <p class="room-description">A perfectly round room with thirteen windows. The light falls in peculiar patterns across the floor. This is where Sarah spoke with her architect spirits each night, receiving new plans for tomorrow's endless construction.</p>
-            </div>
-        </div>
-        
-        <div class="room" id="hidden-room">
-            <div class="room-content">
-                <h1 class="room-title">The Hidden Chamber</h1>
-                <p class="room-description">You've found a room that doesn't appear on any blueprint. The air feels dense here, charged with electricity. The wallpaper pattern shifts subtly when you're not looking directly at it. Someone whispers a number sequence that echoes from an unknown source.</p>
-            </div>
-        </div>
-        
-        <!-- Navigation -->
-        <div class="navigation">
-            <button class="nav-btn" data-room="entrance">Entrance</button>
-            <button class="nav-btn" data-room="stair-room">Stairway</button>
-            <button class="nav-btn" data-room="door-room">Doors</button>
-            <button class="nav-btn" data-room="window-room">Windows</button>
-            <button class="nav-btn" id="secret-btn">?</button>
-        </div>
-        
-        <!-- Counters -->
-        <div class="counter" id="room-counter">Rooms visited: 1 of ?</div>
-        <div class="time" id="time-counter">Time in house: 00:00</div>
-        <div class="inventory" id="inventory">Collected: None</div>
-        
-        <!-- Visual elements -->
-        <div class="static-overlay"></div>
-        <div class="vignette"></div>
-    </div>
+  <div id="inputBox">
+    <input type="text" id="urlInput" placeholder="Enter a Wikipedia URL"/>
+    <button onclick="startChallenge()">Start Challenge</button>
+  </div>
+  <div id="output"></div>
+  <div id="clickCounter">Clicks: 0</div>
+  <div id="targetWord"></div>
+  <div id="completionMessage"></div>
 
-    <script>
-        // Variables to track state
-        let currentRoom = 'entrance';
-        let visitedRooms = ['entrance'];
-        let roomCount = 5;
-        let secretsFound = 0;
-        let startTime = new Date();
-        let artifacts = [];
-        
-        // Room descriptions for dynamic generation
-        const roomDescriptions = [
-            "This room appears to be perfectly normal, which makes it the strangest room in the house. Every angle is exactly 90 degrees. The uncanny perfection creates a deep sense of unease.",
-            "A mirror covers the entire wall, but your reflection is delayed by several seconds. When you move, it hesitates before following.",
-            "The floor slopes subtly toward a drain in the center. The tap in the corner drips at irregular intervals, each drop creating ripples that spread unnaturally far.",
-            "are you even reading this deep in.",
-            "This room has no corners—the walls curve smoothly into the ceiling and floor. Whispers seem to slide around the curves, growing louder then quieter as they travel."
-        ];
-        
-        // Initialize the room counter
-        document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-        
-        // Handle navigation
-        document.querySelectorAll('.nav-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const roomId = this.getAttribute('data-room');
-                if (roomId) {
-                    changeRoom(roomId);
-                }
-            });
-        });
-        
-        // Secret button functionality
-        document.getElementById('secret-btn').addEventListener('click', function() {
-            if (secretsFound >= 3) {
-                // Reveal hidden room
-                changeRoom('hidden-room');
-            } else {
-                // Give a hint
-                const hintMessages = [
-                    "Have you tried stabbing me...?",
-                    "clickclickclickclickclickclick",
-                    "Use your force",
-                    "Some secrets are hidden in plain sight.",
-                    "Not all doors are visible to the untrained eye."
-                ];
-                alert(hintMessages[secretsFound]);
-            }
-        });
-        
-        // Change room function
-        function changeRoom(roomId) {
-            // Hide current room
-            document.getElementById(currentRoom).classList.remove('active');
-            
-            // Show new room
-            document.getElementById(roomId).classList.add('active');
-            
-            // Update current room
-            currentRoom = roomId;
-            
-            // Track visited rooms
-            if (!visitedRooms.includes(roomId)) {
-                visitedRooms.push(roomId);
-                document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-                
-                // When all normal rooms are visited, increase the count mysteriously
-                if (visitedRooms.length === 4) {
-                    setTimeout(() => {
-                        roomCount += Math.floor(Math.random() * 5) + 3;
-                        document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-                    }, 3000);
-                }
-            }
-            
-            // Change background color slightly
-            const hue = 35 + Math.random() * 15;
-            const sat = 15 + Math.random() * 10;
-            const light = 85 + Math.random() * 10;
-            document.body.style.backgroundColor = `hsl(${hue}, ${sat}%, ${light}%)`;
-            
-            // Generate architectural elements
-            generateRoomElements();
-        }
-        
-        // Generate architectural elements for the current room
-        function generateRoomElements() {
-            // Clear previous elements
-            document.querySelectorAll('.wall, .window, .staircase, .ghost, .door-nowhere, .secret-message, .floor-pattern').forEach(el => {
-                el.remove();
-            });
-            
-            // Create new elements
-            createWalls();
-            createWindows();
-            
-            if (currentRoom === 'stair-room') {
-                createStaircases();
-            }
-            
-            if (currentRoom === 'door-room') {
-                createDoors();
-            }
-            
-            // Always add some ghosts and secret messages
-            createGhosts();
-            createSecretMessages();
-            createFloorPattern();
-        }
-        
-        // Create walls
-        function createWalls() {
-            const container = document.querySelector('.container');
-            const count = Math.floor(Math.random() * 3) + 2;
-            
-            for (let i = 0; i < count; i++) {
-                const wall = document.createElement('div');
-                wall.classList.add('wall');
-                
-                const width = Math.random() * 30 + 10;
-                const height = Math.random() * 60 + 20;
-                const top = Math.random() * 80;
-                const left = Math.random() * 80;
-                
-                wall.style.width = `${width}vw`;
-                wall.style.height = `${height}vh`;
-                wall.style.top = `${top}vh`;
-                wall.style.left = `${left}vw`;
-                wall.style.transform = `rotate(${Math.random() * 10 - 5}deg)`;
-                
-                container.appendChild(wall);
-            }
-        }
-        
-        // Create windows
-        function createWindows() {
-            const container = document.querySelector('.container');
-            const count = currentRoom === 'window-room' ? 13 : Math.floor(Math.random() * 3) + 1;
-            
-            for (let i = 0; i < count; i++) {
-                const window = document.createElement('div');
-                window.classList.add('window');
-                
-                const width = Math.random() * 15 + 5;
-                const height = Math.random() * 20 + 10;
-                const top = Math.random() * 80;
-                const left = Math.random() * 80;
-                
-                window.style.width = `${width}vw`;
-                window.style.height = `${height}vh`;
-                window.style.top = `${top}vh`;
-                window.style.left = `${left}vw`;
-                
-                container.appendChild(window);
-                
-                // Add window interaction
-                window.addEventListener('mouseover', function() {
-                    this.style.backgroundColor = 'rgba(167, 199, 231, 0.5)';
-                    // Random chance to see something pass by the window
-                    if (Math.random() < 0.2) {
-                        const shadow = document.createElement('div');
-                        shadow.style.position = 'absolute';
-                        shadow.style.width = '20%';
-                        shadow.style.height = '30%';
-                        shadow.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
-                        shadow.style.filter = 'blur(5px)';
-                        shadow.style.left = '0';
-                        shadow.style.top = '50%';
-                        shadow.style.transform = 'translateY(-50%)';
-                        shadow.style.animation = 'moveAcross 1.5s linear forwards';
-                        
-                        this.appendChild(shadow);
-                        
-                        setTimeout(() => {
-                            shadow.remove();
-                        }, 1500);
-                    }
-                });
-                
-                window.addEventListener('mouseout', function() {
-                    this.style.backgroundColor = 'rgba(167, 199, 231, 0.3)';
-                });
-            }
-        }
-        
-        // Create staircases
-        function createStaircases() {
-            const container = document.querySelector('.container');
-            const count = Math.floor(Math.random() * 2) + 1;
-            
-            for (let i = 0; i < count; i++) {
-                const staircase = document.createElement('div');
-                staircase.classList.add('staircase');
-                
-                const width = Math.random() * 40 + 30;
-                const height = Math.random() * 5 + 2;
-                const top = Math.random() * 70 + 10;
-                const left = Math.random() * 60;
-                const angle = Math.random() * 30 - 15;
-                
-                staircase.style.width = `${width}vw`;
-                staircase.style.height = `${height}vh`;
-                staircase.style.top = `${top}vh`;
-                staircase.style.left = `${left}vw`;
-                staircase.style.transform = `rotate(${angle}deg)`;
-                
-                container.appendChild(staircase);
-                
-                // Create steps
-                const stepCount = Math.floor(width / 2);
-                for (let j = 0; j < stepCount; j++) {
-                    const step = document.createElement('div');
-                    step.style.position = 'absolute';
-                    step.style.width = '2vw';
-                    step.style.height = `${height}vh`;
-                    step.style.left = `${j * 2}vw`;
-                    step.style.borderLeft = '1px solid rgba(114, 94, 72, 0.5)';
-                    staircase.appendChild(step);
-                }
-            }
-        }
-        
-        // Create doors
-        function createDoors() {
-            const container = document.querySelector('.container');
-            const count = currentRoom === 'door-room' ? 13 : Math.floor(Math.random() * 3) + 1;
-            
-            for (let i = 0; i < count; i++) {
-                const door = document.createElement('div');
-                door.classList.add('door-nowhere');
-                
-                const width = Math.random() * 5 + 5;
-                const height = Math.random() * 10 + 10;
-                const top = Math.random() * 70;
-                const left = Math.random() * 80;
-                
-                door.style.width = `${width}vw`;
-                door.style.height = `${height}vh`;
-                door.style.top = `${top}vh`;
-                door.style.left = `${left}vw`;
-                
-                container.appendChild(door);
-                
-                // Add door interaction
-                door.addEventListener('click', function() {
-                    // Random chance to find a secret
-                    if (Math.random() < 0.3) {
-                        findSecret();
-                    } else {
-                        // Random room navigation
-                        const rooms = ['entrance', 'stair-room', 'door-room', 'window-room'];
-                        const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
-                        changeRoom(randomRoom);
-                    }
-                });
-            }
-        }
-        
-        // Create ghosts
-        function createGhosts() {
-            const container = document.querySelector('.container');
-            const count = Math.floor(Math.random() * 5) + 2;
-            
-            for (let i = 0; i < count; i++) {
-                const ghost = document.createElement('div');
-                ghost.classList.add('ghost');
-                
-                const size = Math.random() * 100 + 50;
-                const top = Math.random() * 80;
-                const left = Math.random() * 80;
-                
-                ghost.style.width = `${size}px`;
-                ghost.style.height = `${size}px`;
-                ghost.style.top = `${top}vh`;
-                ghost.style.left = `${left}vw`;
-                
-                container.appendChild(ghost);
-                
-                // Animate ghost
-                animateGhost(ghost);
-            }
-        }
-        
-        // Animate ghost
-        function animateGhost(ghost) {
-            const animationDuration = Math.random() * 10000 + 5000;
-            const newTop = Math.random() * 80;
-            const newLeft = Math.random() * 80;
-            const newSize = Math.random() * 100 + 50;
-            
-            ghost.style.transition = `all ${animationDuration / 1000}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
-            ghost.style.top = `${newTop}vh`;
-            ghost.style.left = `${newLeft}vw`;
-            ghost.style.width = `${newSize}px`;
-            ghost.style.height = `${newSize}px`;
-            
-            setTimeout(() => {
-                animateGhost(ghost);
-            }, animationDuration);
-        }
-        
-        // Create secret messages
-        function createSecretMessages() {
-            const container = document.querySelector('.container');
-            const count = Math.floor(Math.random() * 5) + 2;
-            const secretTexts = [
-                "sarah is still watching",
-                "the house grows at night",
-                "lol can you even see this",
-                "don't count the windows twice",
-                "the spirits are trapped in the walls",
-                "midnight reveals the true floor plan",
-                "the architect never left",
-                "I have chatgpt'd this text",
-                "count seven steps clockwise"
-            ];
-            
-            for (let i = 0; i < count; i++) {
-                const message = document.createElement('div');
-                message.classList.add('secret-message');
-                
-                const top = Math.random() * 90;
-                const left = Math.random() * 90;
-                const rotate = Math.random() * 360;
-                
-                message.style.top = `${top}vh`;
-                message.style.left = `${left}vw`;
-                message.style.setProperty('--rotate', `${rotate}deg`);
-                message.textContent = secretTexts[Math.floor(Math.random() * secretTexts.length)];
-                
-                container.appendChild(message);
-                
-                // Add message interaction
-                message.addEventListener('mouseover', function() {
-                    this.style.opacity = '0.5';
-                });
-                
-                message.addEventListener('mouseout', function() {
-                    this.style.opacity = '0.1';
-                });
-                
-                message.addEventListener('click', function() {
-                    findSecret();
-                    this.style.opacity = '0';
-                    setTimeout(() => {
-                        this.remove();
-                    }, 500);
-                });
-            }
-        }
-        
-        // Create floor pattern
-        function createFloorPattern() {
-            const container = document.querySelector('.container');
-            const floor = document.createElement('div');
-            floor.classList.add('floor-pattern');
-            container.appendChild(floor);
-        }
-        
-        // Find a secret
-        function findSecret() {
-            secretsFound++;
-            
-            // Add to inventory
-            const secretItems = ["Skeleton Key", "Photograph", "Aged Letter", "Brass Button", "Pocket Watch", "Hair Locket", "Torn Blueprint"];
-            const foundItem = secretItems[Math.floor(Math.random() * secretItems.length)];
-            
-            if (!artifacts.includes(foundItem)) {
-                artifacts.push(foundItem);
-                document.getElementById('inventory').textContent = `Collected: ${artifacts.join(', ')}`;
-            }
-            
-            // Display notification
-            const notification = document.createElement('div');
-            notification.style.position = 'fixed';
-            notification.style.top = '50%';
-            notification.style.left = '50%';
-            notification.style.transform = 'translate(-50%, -50%)';
-            notification.style.padding = '20px';
-            notification.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-            notification.style.color = 'white';
-            notification.style.fontFamily = "'Space Mono', monospace";
-            notification.style.zIndex = '1000';
-            notification.style.textAlign = 'center';
-            notification.style.borderRadius = '5px';
-            notification.textContent = `You found: ${foundItem}`;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 1s ease';
-                setTimeout(() => {
-                    notification.remove();
-                }, 1000);
-            }, 2000);
-            
-           // If found enough secrets, enable hidden room
-           if (secretsFound >= 3 && !visitedRooms.includes('hidden-room')) {
-                const secretBtn = document.getElementById('secret-btn');
-                secretBtn.style.backgroundColor = '#5d4b3a';
-                secretBtn.style.color = '#f4e9da';
-                secretBtn.style.borderColor = '#f4e9da';
-                secretBtn.classList.add('glitch');
-                
-                // Flash the button
-                const flash = setInterval(() => {
-                    secretBtn.style.opacity = secretBtn.style.opacity === '1' ? '0.5' : '1';
-                }, 500);
-                
-                setTimeout(() => {
-                    clearInterval(flash);
-                    secretBtn.style.opacity = '1';
-                }, 3000);
-            }
-        }
-        
-        // Update time counter
-        function updateTimeCounter() {
-            const now = new Date();
-            const diff = now - startTime;
-            
-            // Convert to minutes and seconds
-            const minutes = Math.floor(diff / 60000);
-            const seconds = Math.floor((diff % 60000) / 1000);
-            
-            // Format with leading zeros
-            const formattedMinutes = String(minutes).padStart(2, '0');
-            const formattedSeconds = String(seconds).padStart(2, '0');
-            
-            document.getElementById('time-counter').textContent = `Time in house: ${formattedMinutes}:${formattedSeconds}`;
-            
-            // The longer you stay, the more the house changes
-            if (minutes > 0 && minutes % 5 === 0 && seconds === 0) {
-                // Every 5 minutes, increase room count
-                roomCount += Math.floor(Math.random() * 3) + 1;
-                document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-                
-                // Add a temporary message
-                const timeNotification = document.createElement('div');
-                timeNotification.style.position = 'fixed';
-                timeNotification.style.bottom = '50%';
-                timeNotification.style.left = '50%';
-                timeNotification.style.transform = 'translate(-50%, 50%)';
-                timeNotification.style.fontFamily = "'Space Mono', monospace";
-                timeNotification.style.color = 'rgba(93, 75, 58, 0.7)';
-                timeNotification.style.fontSize = '1.2rem';
-                timeNotification.style.zIndex = '1000';
-                timeNotification.style.textAlign = 'center';
-                timeNotification.style.pointerEvents = 'none';
-                timeNotification.textContent = "The house is growing...";
-                
-                document.body.appendChild(timeNotification);
-                
-                setTimeout(() => {
-                    timeNotification.style.opacity = '0';
-                    timeNotification.style.transition = 'opacity 2s ease';
-                    setTimeout(() => {
-                        timeNotification.remove();
-                    }, 2000);
-                }, 3000);
-                
-                // Generate new room
-                generateNewRoom();
-            }
-        }
-        
-        // Generate a new room dynamically
-        function generateNewRoom() {
-            const roomId = `room-${roomCount}`;
-            
-            // Create the room HTML
-            const roomElement = document.createElement('div');
-            roomElement.classList.add('room');
-            roomElement.id = roomId;
-            
-            const roomContent = document.createElement('div');
-            roomContent.classList.add('room-content');
-            
-            const roomTitle = document.createElement('h1');
-            roomTitle.classList.add('room-title');
-            roomTitle.textContent = `Room ${roomCount}`;
-            
-            const roomDescription = document.createElement('p');
-            roomDescription.classList.add('room-description');
-            // Use a random description from our array
-            const descIndex = Math.floor(Math.random() * roomDescriptions.length);
-            roomDescription.textContent = roomDescriptions[descIndex];
-            
-            roomContent.appendChild(roomTitle);
-            roomContent.appendChild(roomDescription);
-            roomElement.appendChild(roomContent);
-            
-            // Add the room to the container
-            document.querySelector('.container').appendChild(roomElement);
-            
-            // Add a navigation button
-            const navBtn = document.createElement('button');
-            navBtn.classList.add('nav-btn');
-            navBtn.setAttribute('data-room', roomId);
-            navBtn.textContent = `Room ${roomCount}`;
-            
-            navBtn.addEventListener('click', function() {
-                changeRoom(roomId);
-            });
-            
-            document.querySelector('.navigation').appendChild(navBtn);
-        }
-        
-        // Easter eggs
-        document.addEventListener('keydown', function(e) {
-            // Konami code: up, up, down, down, left, right, left, right, b, a
-            const konamiCode = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65];
-            const keyPresses = [];
-            
-            keyPresses.push(e.keyCode);
-            
-            if (keyPresses.length > konamiCode.length) {
-                keyPresses.shift();
-            }
-            
-            if (keyPresses.join(',') === konamiCode.join(',')) {
-                // Easter egg: reveal all rooms
-                document.querySelectorAll('.nav-btn').forEach(btn => {
-                    btn.style.display = 'block';
-                });
-                
-                // Flash the screen
-                const flash = document.createElement('div');
-                flash.style.position = 'fixed';
-                flash.style.top = '0';
-                flash.style.left = '0';
-                flash.style.width = '100vw';
-                flash.style.height = '100vh';
-                flash.style.backgroundColor = 'white';
-                flash.style.zIndex = '1000';
-                flash.style.opacity = '0.8';
-                
-                document.body.appendChild(flash);
-                
-                setTimeout(() => {
-                    flash.remove();
-                }, 200);
-            }
-        });
-        //Tear in library thing
+  <script>
+    let clickCount = 0;
+    let targetWord = '';
+    let currentUrl = '';
+    let visitedPages = new Set();  //  track pages
+    let pathToTarget = [];  // To track the path from the starting page to the target word
 
+    // Start the challenge with a user-provided URL
+    function startChallenge() {
+      const url = document.getElementById('urlInput').value;
+      if (!url.startsWith('https://en.wikipedia.org/wiki/')) {
+        alert('Please enter a valid Wikipedia URL.');
+        return;
+      }
 
-        // Hidden interaction: clicking rapidly in one spot
-        let clickCount = 0;
-        let lastClickTime = 0;
-        let lastClickPosition = { x: 0, y: 0 };
-        
-        document.addEventListener('click', function(e) {
-            const now = Date.now();
-            const position = { x: e.clientX, y: e.clientY };
-            
-            // Check if click is in same area and within time threshold
-            const distance = Math.sqrt(
-                Math.pow(position.x - lastClickPosition.x, 2) + 
-                Math.pow(position.y - lastClickPosition.y, 2)
-            );
-            
-            if (distance < 50 && now - lastClickTime < 500) {
-                clickCount++;
-                
-                if (clickCount >= 7) {
-                    // Create the tear
-                    const tear = document.createElement('div');
-                    tear.style.position = 'fixed';
-                    tear.style.top = `${position.y}px`;
-                    tear.style.left = `${position.x}px`;
-                    tear.style.width = '2px';
-                    tear.style.height = '0';
-                    tear.style.backgroundColor = 'black';
-                    tear.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-                    tear.style.transform = 'translate(-50%, -50%)';
-                    tear.style.zIndex = '500';
-                    tear.style.transition = 'height 2s ease, width 2s ease';
-                    
-                    document.body.appendChild(tear);
-                    
-                    setTimeout(() => {
-                        tear.style.height = '200px';
-                        tear.style.width = '5px';
-                    }, 100);
-                    
-                    // Reset click count and generateb interaction
-                    clickCount = 0;
-                    tear.addEventListener('click', function() {
-                        // Trajdport to other room
-                        const flash = document.createElement('div');
-                        flash.style.position = 'fixed';
-                        flash.style.top = '0';
-                        flash.style.left = '0';
-                        flash.style.width = '100vw';
-                        flash.style.height = '100vh';
-                        flash.style.backgroundColor = 'black';
-                        flash.style.zIndex = '1000';
-                        flash.style.opacity = '0';
-                        flash.style.transition = 'opacity 0.5s ease';
-                        
-                        document.body.appendChild(flash);
-                        
-                        setTimeout(() => {
-                            flash.style.opacity = '1';
-                            
-                            setTimeout(() => {
-                                // Teleport to random room
-                                const rooms = document.querySelectorAll('.room');
-                                const randomRoom = rooms[Math.floor(Math.random() * rooms.length)].id;
-                                changeRoom(randomRoom);
-                                
-                                setTimeout(() => {
-                                    flash.style.opacity = '0';
-                                    setTimeout(() => {
-                                        flash.remove();
-                                    }, 500);
-                                }, 500);
-                            }, 500);
-                        }, 100);
-                    });
-                }
-            } else {
-                clickCount = 1;
-            }
-            
-            lastClickTime = now;
-            lastClickPosition = position;
+      currentUrl = url;
+      visitedPages.clear();
+      pathToTarget = [];
+      clickCount = 0;
+      document.getElementById('completionMessage').textContent = '';
+      document.getElementById('clickCounter').textContent = `Clicks: 0`;
+      document.getElementById('targetWord').textContent = '';  // Clear target word
+      fetchPage(url);
+    }
+
+    // Het Wikipedia page and process its links
+    function fetchPage(url) {
+      if (visitedPages.has(url)) {
+        return;
+      }
+      visitedPages.add(url);
+
+      fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(data => {
+          processLinks(data.contents, url);
+        })
+        .catch(err => {
+          console.error('Error:', err);
+          alert('Could not fetch site. It may have protections.');
         });
-        
-        // Start the time counter
-        setInterval(updateTimeCounter, 1000);
-        
-        // Initial generation of room elements
-        generateRoomElements();
-        
-        // Add more rooms as the user explores
+    }
+
+    // Process the HTML content to extract clickable words
+    function processLinks(html, originUrl) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const baseUrl = new URL(originUrl);
+      const links = Array.from(doc.querySelectorAll('a'));
+
+      let words = [];
+      links.forEach(link => {
+        const text = link.textContent.trim();
+        let href = link.getAttribute('href');
+        if (!text || !href || isUtilityLink(href, text)) return;
+
+        try {
+          href = new URL(href, baseUrl).href;
+        } catch (e) {
+          return;
+        }
+
+        // Collect words for the target selection
+        words = words.concat(text.split(/\s+/));
+      });
+
+      // If it's the first page, select a random target word for the challenge
+      if (pathToTarget.length === 0) {
+        targetWord = words[Math.floor(Math.random() * words.length)];
+        document.getElementById('targetWord').textContent = `Target Word: ${targetWord}`;
+      }
+
+      // Display clickable words on the screen
+      let delayCounter = 0;
+      words.forEach(word => {
+        showWord(word, originUrl, delayCounter);
+        delayCounter += 150;
+      });
+    }
+
+    // Show words as clickable elements
+    function showWord(word, url, delay) {
+      setTimeout(() => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'word';
+        wrapper.style.left = Math.random() * (window.innerWidth - 200) + 'px';
+        wrapper.style.top = Math.random() * (window.innerHeight - 100) + 'px';
+        wrapper.style.fontSize = (Math.random() * 2 + 1.2) + 'rem';
+
+        const a = document.createElement('a');
+        a.href = '#';
+        a.textContent = word;
+        a.onclick = (e) => {
+          e.preventDefault();
+          loadWikipediaInIframe(url, word);
+        };
+
+        wrapper.appendChild(a);
+        document.getElementById('output').appendChild(wrapper);
+
         setTimeout(() => {
-            // Generate a new room after a minute and update counter
-            generateNewRoom();
-            document.getElementById('room-counter').textContent = `Rooms visited: ${visitedRooms.length} of ${roomCount}`;
-        }, 30000);
-        
-        // Add whispers that play randomly
-        function playWhisper() {
-            const whispers = [
-                "don't look behind you",
-                "thirteen",
-                "follow the stairs",
-                "she's watching",
-                "count the doors",
-                "the house knows",
-                "never ending",
-                "find the key",
-                "hidden passages"
-            ];
-            
-            //Chatgpt dor designing the audio
+          wrapper.style.opacity = 0;
+          setTimeout(() => wrapper.remove(), 500);
+        }, 3000);
+      }, delay);
+    }
 
-            // Create audio context
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioContext = new AudioContext();
-            
-            // Create oscillator
-            const oscillator = audioContext.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(300 + Math.random() * 200, audioContext.currentTime);
-            
-            // Create gain node for volume
-            const gainNode = audioContext.createGain();
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.05, audioContext.currentTime + 0.5);
-            gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 3);
-            
-            // Connect nodes
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Start and stop
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 3);
-            
-            // Display a whisper text
-            const whisper = document.createElement('div');
-            whisper.style.position = 'fixed';
-            whisper.style.top = `${Math.random() * 80 + 10}%`;
-            whisper.style.left = `${Math.random() * 80 + 10}%`;
-            whisper.style.transform = 'translate(-50%, -50%)';
-            whisper.style.fontFamily = "'Space Mono', monospace";
-            whisper.style.color = 'rgba(93, 75, 58, 0.3)';
-            whisper.style.fontSize = '0.8rem';
-            whisper.style.zIndex = '100';
-            whisper.style.pointerEvents = 'none';
-            whisper.style.opacity = '0';
-            whisper.style.transition = 'opacity 2s ease';
-            whisper.textContent = whispers[Math.floor(Math.random() * whispers.length)];
-            
-            document.body.appendChild(whisper);
-            
-            setTimeout(() => {
-                whisper.style.opacity = '1';
-                
-                setTimeout(() => {
-                    whisper.style.opacity = '0';
-                    setTimeout(() => {
-                        whisper.remove();
-                    }, 2000);
-                }, 2000);
-            }, 100);
-            
-            // Schedule next whisper
-            setTimeout(playWhisper, Math.random() * 30000 + 15000);
+    // Check if the link is a utility link (e.g., to help or disambiguation pages)
+    function isUtilityLink(href, text) {
+      return href.includes('Help:') || 
+             href.includes('Wikimedia') || 
+             href.includes('Special:') || 
+             text.length < 2;
+    }
+
+    // Load a new Wikipedia page and track the click
+    function loadWikipediaInIframe(url, word) {
+      clickCount++;
+
+      // Update the click counter
+      document.getElementById('clickCounter').textContent = `Clicks: ${clickCount}`;
+
+      // End the challenge after 7 clicks
+      if (clickCount === 7) {
+        if (word.toLowerCase() === targetWord.toLowerCase()) {
+          document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
+        } else {
+          document.getElementById('completionMessage').textContent = 'You lost! The word was: ' + targetWord + '. The game will restart.';
+          setTimeout(() => startChallenge(), 3000);  // Restart after 3 seconds
         }
-        
-        // Start whispers after a delay
-        setTimeout(playWhisper, 10000);
-        
-        // Add cursor trail effect
-        function createCursorTrail() {
-            const trail = document.createElement('div');
-            trail.style.position = 'fixed';
-            trail.style.width = '6px';
-            trail.style.height = '6px';
-            trail.style.borderRadius = '50%';
-            trail.style.backgroundColor = 'rgba(93, 75, 58, 0.3)';
-            trail.style.zIndex = '99';
-            trail.style.pointerEvents = 'none';
-            trail.style.transition = 'transform 0.1s ease, opacity 1s ease';
-            trail.style.opacity = '0.7';
-            
-            document.body.appendChild(trail);
-            
-            setTimeout(() => {
-                trail.style.opacity = '0';
-                setTimeout(() => {
-                    trail.remove();
-                }, 1000);
-            }, 500);
-            
-            return trail;
-        }
-        
-        document.addEventListener('mousemove', function(e) {
-            const trail = createCursorTrail();
-            trail.style.left = `${e.clientX}px`;
-            trail.style.top = `${e.clientY}px`;
-        });
-    </script>
+      }
+
+      // If the target word is found early
+      if (word.toLowerCase() === targetWord.toLowerCase()) {
+        document.getElementById('completionMessage').textContent = `You found the word: "${word}". Challenge Complete!`;
+        return;
+      }
+
+      // Add to the path and fetch the next page
+      pathToTarget.push(url);
+      fetchPage(url);
+    }
+  </script>
 </body>
 </html>
